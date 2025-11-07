@@ -1,0 +1,4 @@
+[build]
+base = "z-netlify-landing"
+publish = "."
+command = "echo 'No build step'"

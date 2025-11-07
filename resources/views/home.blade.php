@@ -1,0 +1,257 @@
+{{-- resources/views/home.blade.php --}}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mirhadati — Find Clean Toilets Near You</title>
+  <meta name="description" content="Mirhadati helps you instantly find clean, accessible toilets around you. Starting in Algeria and expanding worldwide. Available on Android, iOS, and Web." />
+  <meta property="og:title" content="Mirhadati — Toilet Finder App" />
+  <meta property="og:description" content="Find clean toilets nearby, see opening hours, access rules, and ratings. Available on Android, iOS, and Web." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#007B7A" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#007B7A', 600:'#006B6A', 700:'#005F5E' },
+            primaryTint: 'rgba(0,123,122,0.12)',
+            ink: { DEFAULT:'#0D0E0C', 600:'#1B1C19', 500:'#2A2B28', 300:'rgba(13,14,12,0.64)', 200:'rgba(13,14,12,0.44)' },
+            paper: '#FAF8F5',
+            surface: '#FFFFFF',
+            surfaceAlt: '#F3F1ED',
+            success:'#22C55E', warning:'#F59E0B', error:'#EF4444', info:'#3B82F6',
+            borderSubtle: 'rgba(13,14,12,0.12)',
+          },
+          boxShadow: {
+            'e-1': '0 1px 2px rgba(0,0,0,0.07)',
+            'e-2': '0 2px 4px rgba(0,0,0,0.09)',
+            'e-3': '0 4px 8px rgba(0,0,0,0.12)',
+            'e-4': '0 6px 12px rgba(0,0,0,0.14)',
+          },
+          borderRadius: {
+            xl: '24px',
+          },
+          fontWeight: {
+            extrablack: '900',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth card hover */
+    .card { transition: transform .2s ease, box-shadow .2s ease; }
+    .card:hover { transform: translateY(-2px); }
+    /* Subtle grid background */
+    .bg-grid {
+      background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+  </style>
+</head>
+<body class="bg-paper text-ink antialiased">
+
+  <!-- Top Nav -->
+  <header class="sticky top-0 z-30 bg-paper/80 backdrop-blur border-b border-borderSubtle">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-lg bg-primary/10 grid place-items-center">
+          <!-- Simple logo mark -->
+          <img src="./images/logo.png" />
+        </div>
+        <span class="font-extrabold tracking-tight text-lg">Mirhadati</span>
+      </div>
+      <nav class="hidden md:flex items-center gap-8 text-ink-300">
+        <a href="#features" class="hover:text-ink-500">Features</a>
+        <a href="#how" class="hover:text-ink-500">How it works</a>
+        <a href="#host" class="hover:text-ink-500">List your toilet</a>
+        <a href="#faq" class="hover:text-ink-500">FAQ</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <a href="#download" class="hidden sm:inline-flex rounded-lg px-3 py-2 text-sm font-semibold bg-primary text-white shadow-e-2 hover:bg-primary-600">Get the app</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none"></div>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
+      <div class="grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <p class="inline-flex items-center text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 rounded-full px-3 py-1">Android • iOS • Web</p>
+          <h1 class="mt-4 text-[34px]/[40px] font-extrabold text-ink">
+            Find a clean, nearby toilet in seconds.
+          </h1>
+          <p class="mt-4 text-ink-300 max-w-xl">
+            Mirhadati pinpoints bathrooms around you with opening hours, access rules, and real reviews. Built for everyday life in Algeria—designed to scale everywhere people go.
+          </p>
+          <div id="download" class="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#" class="rounded-xl bg-ink text-white px-4 py-3 text-sm font-semibold shadow-e-2 hover:shadow-e-3">Download for Android</a>
+            <a href="#" class="rounded-xl bg-ink text-white px-4 py-3 text-sm font-semibold shadow-e-2 hover:shadow-e-3">Download for iOS</a>
+            <a href="#" class="rounded-xl bg-surface px-4 py-3 text-sm font-semibold shadow-e-2 ring-1 ring-borderSubtle hover:shadow-e-3">Open Web App</a>
+          </div>
+          <p class="mt-3 text-[13px] text-ink-300">Free to use. No sign-in required to browse nearby places.</p>
+        </div>
+
+        <!-- Mock phone UI -->
+        <div class="relative">
+          <div class="relative mx-auto w-[320px] rounded-[32px] bg-surface shadow-e-4 border border-borderSubtle overflow-hidden card">
+            <div class="h-10 bg-primary text-white grid place-items-center text-xs font-semibold">Mirhadati map</div>
+            <div class="p-4 space-y-3 bg-grid">
+              <img src="./images/map.png" class="rounded-xl" />
+              {{-- <div class="flex items-center gap-2">
+                <input class="w-full rounded-xl border border-borderSubtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Search wilaya, street, venue…" />
+                <button class="shrink-0 rounded-xl px-3 py-2 bg-primary text-white text-sm font-semibold">Go</button>
+              </div>
+
+              <div class="bg-surface rounded-xl p-3 ring-1 ring-borderSubtle">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <p class="text-sm font-semibold">Toilet • Café El Bachdjarrah</p>
+                    <p class="text-xs text-ink-300">Open • Access: staff • 200DZD</p>
+                  </div>
+                  <span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-lg">500 m</span>
+                </div>
+              </div>
+
+              <div class="bg-surface rounded-xl p-3 ring-1 ring-borderSubtle">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <p class="text-sm font-semibold">Public restroom • Jardin d’Essai</p>
+                    <p class="text-xs text-ink-300">Closes 19:00 • Free</p>
+                  </div>
+                  <span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-lg">1.2 km</span>
+                </div>
+              </div>
+
+              <div class="bg-surface rounded-xl p-3 ring-1 ring-borderSubtle">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <p class="text-sm font-semibold">Mall WC • Bab Ezzouar</p>
+                    <p class="text-xs text-ink-300">Open • Code at info desk</p>
+                  </div>
+                  <span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-lg">2.0 km</span>
+                </div>
+              </div>
+
+              <div class="pt-2 text-center text-xs text-ink-300">Tap to see details, ratings, and easy directions.</div> --}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Value props -->
+  <section id="features" class="py-16 bg-surface">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="card rounded-xl p-6 ring-1 ring-borderSubtle bg-white shadow-e-1">
+          <div class="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center mb-4">
+            <svg class="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a9 9 0 0 0-9 9c0 6.5 9 11 9 11s9-4.5 9-11a9 9 0 0 0-9-9Zm0 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg>
+          </div>
+          <h3 class="font-bold text-ink">Instant nearby results</h3>
+          <p class="mt-2 text-ink-300 text-sm">Open the map and see bathrooms around you with distance, status, and route in a tap.</p>
+        </div>
+        <div class="card rounded-xl p-6 ring-1 ring-borderSubtle bg-white shadow-e-1">
+          <div class="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center mb-4">
+            <svg class="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a6 6 0 0 0-6 6v2H5a3 3 0 0 0 0 6h1v1a3 3 0 0 0 6 0v-1h1a3 3 0 0 0 0-6h-1V9a3 3 0 1 1 6 0v2h-1a1 1 0 1 0 0 2h1v1a1 1 0 1 0 2 0v-1a3 3 0 0 0-2-2V9a6 6 0 0 0-6-6Z"/></svg>
+          </div>
+          <h3 class="font-bold text-ink">Access & cleanliness, clear</h3>
+          <p class="mt-2 text-ink-300 text-sm">Know before you go: staff-only, code, public, paid/free, and cleanliness insights.</p>
+        </div>
+        <div class="card rounded-xl p-6 ring-1 ring-borderSubtle bg-white shadow-e-1">
+          <div class="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center mb-4">
+            <svg class="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v3H4zM4 10h10v3H4zM4 16h16v3H4z"/></svg>
+          </div>
+          <h3 class="font-bold text-ink">Community-driven details</h3>
+          <p class="mt-2 text-ink-300 text-sm">Ratings, photos, and quick reports keep information fresh and useful for everyone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how" class="py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-3 gap-6">
+        <div class="rounded-xl p-6 ring-1 ring-borderSubtle bg-surfaceAlt">
+          <span class="text-xs font-bold text-primary">Step 1</span>
+          <h4 class="mt-2 font-bold">Open Mirhadati</h4>
+          <p class="mt-2 text-ink-300 text-sm">Allow location or search by wilaya—Algiers, Oran, Constantine, and beyond.</p>
+        </div>
+        <div class="rounded-xl p-6 ring-1 ring-borderSubtle bg-surfaceAlt">
+          <span class="text-xs font-bold text-primary">Step 2</span>
+          <h4 class="mt-2 font-bold">Pick a spot</h4>
+          <p class="mt-2 text-ink-300 text-sm">See access rules, hours, pricing, and distance. Save favorites for later.</p>
+        </div>
+        <div class="rounded-xl p-6 ring-1 ring-borderSubtle bg-surfaceAlt">
+          <span class="text-xs font-bold text-primary">Step 3</span>
+          <h4 class="mt-2 font-bold">Go with confidence</h4>
+          <p class="mt-2 text-ink-300 text-sm">One tap for directions. Share quick feedback to help the next person.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Host CTA -->
+  <section id="host" class="py-16 bg-gradient-to-b from-primary/10 to-transparent">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="rounded-xl bg-white ring-1 ring-borderSubtle shadow-e-2 p-8 lg:flex items-center justify-between">
+        <div>
+          <h3 class="text-2xl font-extrabold text-ink">Own a venue? Make restrooms easy to find.</h3>
+          <p class="mt-2 text-ink-300">List your facilities for free. Set access rules, add opening hours, and be helpful to your community.</p>
+        </div>
+        <a href="#" class="mt-6 lg:mt-0 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-white font-semibold shadow-e-2 hover:bg-primary-600">List your toilet</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="py-16">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <h3 class="text-2xl font-extrabold text-ink text-center">Frequently asked questions</h3>
+      <div class="mt-8 space-y-4">
+        <details class="rounded-xl bg-white ring-1 ring-borderSubtle p-4 shadow-e-1">
+          <summary class="font-semibold cursor-pointer">In which cities is Mirhadati available?</summary>
+          <p class="mt-2 text-ink-300 text-sm">We’re focused on Algeria to start, with coverage growing every week. Our map is designed to scale across regions as the community contributes.</p>
+        </details>
+        <details class="rounded-xl bg-white ring-1 ring-borderSubtle p-4 shadow-e-1">
+          <summary class="font-semibold cursor-pointer">Do I need an account?</summary>
+          <p class="mt-2 text-ink-300 text-sm">No. Browsing nearby places is open. Create an account to rate, upload photos, or save favorites.</p>
+        </details>
+        <details class="rounded-xl bg-white ring-1 ring-borderSubtle p-4 shadow-e-1">
+          <summary class="font-semibold cursor-pointer">How accurate is the information?</summary>
+          <p class="mt-2 text-ink-300 text-sm">Locations are verified by the community. You’ll see recent activity and opening hours so you can choose confidently.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-borderSubtle">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      <div class="flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-lg bg-primary/10 grid place-items-center">
+            <!-- Simple logo mark -->
+            <img src="./images/logo.png" />
+          </div>
+          <span class="font-extrabold">Mirhadati</span>
+        </div>
+        <div class="text-sm text-ink-300">
+          <a href="{{ route('privacy') ?? '#' }}" class="hover:text-ink-500">Privacy</a>
+        </div>
+      </div>
+      <p class="mt-6 text-xs text-ink-200">&copy; {{ date('Y') }} Mirhadati. All rights reserved.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

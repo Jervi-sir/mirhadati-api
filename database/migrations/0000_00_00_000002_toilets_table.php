@@ -41,7 +41,7 @@ return new class extends Migration
 
             $table->string('address_line', 180);
             // REPLACED city with wilaya_id
-            $table->foreignId('wilaya_id')->constrained('wilayas')->restrictOnDelete();
+            $table->foreignId('wilaya_id')->nullable()->constrained('wilayas')->restrictOnDelete();
             $table->string('place_hint', 120)->nullable();
 
             // Access / capacity

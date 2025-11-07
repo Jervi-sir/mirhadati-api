@@ -17,9 +17,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             WilayaSeeder::class,
             ToiletCategorySeeder::class,
-            ToiletSeeder::class,
-            ToiletAndPhotoSeeder::class,
-            ToiletExtraInfoSeeder::class,
+            // ToiletSeeder::class,
+            // ToiletAndPhotoSeeder::class,
+            // ToiletExtraInfoSeeder::class,
         ]);
 
     }
