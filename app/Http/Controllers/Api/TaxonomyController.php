@@ -1,0 +1,240 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+
+class TaxonomyController extends Controller
+{
+    public function __invoke(Request $request)
+    {
+        $validated = validator($request->all(), [
+            'type'        => 'nullable|in:wilayas,categories,access_methods,amenities,rules,all',
+            'scope'       => 'nullable|in:all,with_toilets',
+            'status'      => 'nullable|in:pending,active,suspended',
+            'with_counts' => 'nullable|in:0,1',
+            'lang'        => 'nullable|in:en,fr,ar',
+            'q'           => 'nullable|string|max:100',
+        ])->validate();
+
+        // If no 'type' was provided, return a helpful message
+        if (empty($validated['type'])) {
+            return response()->json([
+                'error' => 'Missing "type" parameter.',
+                'message' => 'Please specify one of the following valid types.',
+                'options' => [
+                    'wilayas'         => 'List Algerian provinces (all or those with toilets).',
+                    'categories'      => 'List toilet categories (from database).',
+                    'access_methods'  => 'List available toilet access methods (hardcoded).',
+                    'amenities'       => 'List available amenities (hardcoded).',
+                    'rules'           => 'List available rules (hardcoded).',
+                    'all'             => 'Return everything in one response (recommended for bootstrapping).',
+                ],
+            ], 400);
+        }
+
+        $type        = $validated['type'];
+        $scope       = $validated['scope'] ?? 'all';
+        $status      = $validated['status'] ?? 'active';
+        $withCounts  = ($validated['with_counts'] ?? '0') === '1';
+        $lang        = $validated['lang'] ?? null;
+        $q           = trim($validated['q'] ?? '');
+
+        $cacheKey = sprintf(
+            'taxonomy:%s:%s:%s:%s:%s',
+            $type,
+            $scope,
+            $status,
+            $withCounts ? '1' : '0',
+            md5($lang . '|' . $q)
+        );
+
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($type, $scope, $status, $withCounts, $lang, $q) {
+            if ($type === 'all') {
+                return response()->json([
+                    'data' => [
+                        'wilayas'        => $this->buildWilayas($scope, $status, $withCounts, $lang, $q),
+                        'categories'     => $this->buildCategories($lang, $q),
+                        'access_methods' => $this->buildAccessMethods($lang, $q),
+                        'amenities'      => $this->buildAmenities($lang, $q),
+                        'rules'          => $this->buildRules($lang, $q),
+                    ],
+                ]);
+            }
+
+            $map = [
+                'wilayas'        => fn() => $this->buildWilayas($scope, $status, $withCounts, $lang, $q),
+                'categories'     => fn() => $this->buildCategories($lang, $q),
+                'access_methods' => fn() => $this->buildAccessMethods($lang, $q),
+                'amenities'      => fn() => $this->buildAmenities($lang, $q),
+                'rules'          => fn() => $this->buildRules($lang, $q),
+            ];
+
+            return response()->json(['data' => $map[$type]()]);
+        });
+    }
+
+    /* ----------------------------- DB-backed ----------------------------- */
+
+    protected function buildWilayas(string $scope, string $status, bool $withCounts, ?string $lang, string $q)
+    {
+        $labelExpr = $this->labelExpr('wilayas', $lang);
+
+        $base = DB::table('wilayas')
+            ->select([
+                'wilayas.id',
+                'wilayas.code',
+                'wilayas.number',
+                DB::raw("$labelExpr as label"),
+                'wilayas.center_lat as lat',
+                'wilayas.center_lng as lng',
+                'wilayas.default_radius_km',
+                'wilayas.min_lat',
+                'wilayas.max_lat',
+                'wilayas.min_lng',
+                'wilayas.max_lng',
+            ]);
+
+        if ($scope === 'with_toilets') {
+            $base->whereExists(function ($q2) use ($status) {
+                $q2->from('toilets')
+                    ->whereColumn('toilets.wilaya_id', 'wilayas.id')
+                    ->when($status, fn($qq) => $qq->where('toilets.status', $status));
+            });
+        }
+
+        if ($q !== '') {
+            $base->where(function ($w) use ($q, $labelExpr) {
+                $w->where('wilayas.code', 'ilike', "%{$q}%")
+                    ->orWhere('wilayas.number', '=', is_numeric($q) ? (int)$q : -99999)
+                    ->orWhereRaw("$labelExpr ilike ?", ["%{$q}%"]);
+            });
+        }
+
+        if ($withCounts) {
+            $countsSub = DB::table('toilets')
+                ->selectRaw('wilaya_id, COUNT(*) as toilets_count')
+                ->when(true, fn($qq) => $qq->when($status, fn($qqq) => $qqq->where('status', $status)))
+                ->groupBy('wilaya_id');
+
+            $base->leftJoinSub($countsSub, 'tc', fn($join) => $join->on('tc.wilaya_id', '=', 'wilayas.id'))
+                ->addSelect('tc.toilets_count');
+        }
+
+        return $base->orderBy('wilayas.number')->get();
+    }
+
+    protected function buildCategories(?string $lang, string $q)
+    {
+        $labelExpr = $this->labelExpr('toilet_categories', $lang);
+
+        $query = DB::table('toilet_categories')
+            ->select(['id', 'code', 'icon', DB::raw("$labelExpr as label")])
+            ->orderBy('code');
+
+        if ($q !== '') {
+            $query->where(function ($w) use ($q, $labelExpr) {
+                $w->where('code', 'ilike', "%{$q}%")
+                    ->orWhereRaw("$labelExpr ilike ?", ["%{$q}%"]);
+            });
+        }
+
+        return $query->get();
+    }
+
+    /* --------------------------- Hardcoded sets -------------------------- */
+
+    protected function buildAccessMethods(?string $lang, string $q)
+    {
+        // Must match your toilets.access_method enum
+        $rows = [
+            ['code' => 'public', 'icon' => 'mdi:door-open', 'en' => 'Public',           'fr' => 'Public',            'ar' => 'عمومي'],
+            ['code' => 'code',   'icon' => 'mdi:keypad',     'en' => 'Door code',       'fr' => 'Code porte',        'ar' => 'رمز الباب'],
+            ['code' => 'staff',  'icon' => 'mdi:account',    'en' => 'Ask staff',       'fr' => 'Demander au staff', 'ar' => 'اسأل الموظفين'],
+            ['code' => 'key',    'icon' => 'mdi:key',        'en' => 'Key required',    'fr' => 'Clé requise',       'ar' => 'مفتاح مطلوب'],
+            ['code' => 'app',    'icon' => 'mdi:cellphone',  'en' => 'App controlled',  'fr' => 'Par application',   'ar' => 'عن طريق التطبيق'],
+        ];
+
+        return $this->mapStaticRows($rows, $lang, $q);
+    }
+
+    protected function buildAmenities(?string $lang, string $q)
+    {
+        // Keep codes stable; you’re free to expand later
+        $rows = [
+            ['code' => 'paper',        'icon' => 'mdi:paper-roll',     'en' => 'Toilet paper',   'fr' => 'Papier toilette',    'ar' => 'ورق المرحاض'],
+            ['code' => 'soap',         'icon' => 'mdi:soap',           'en' => 'Soap',           'fr' => 'Savon',              'ar' => 'صابون'],
+            ['code' => 'water',        'icon' => 'mdi:water',          'en' => 'Water',          'fr' => 'Eau',                'ar' => 'ماء'],
+            ['code' => 'bidet',        'icon' => 'mdi:bidet',          'en' => 'Bidet / Shattaf', 'fr' => 'Bidet / Douchette',  'ar' => 'شطّاف'],
+            ['code' => 'handwash',     'icon' => 'mdi:hand-water',     'en' => 'Hand wash',      'fr' => 'Lavage des mains',   'ar' => 'غسل اليدين'],
+            ['code' => 'dryers',       'icon' => 'mdi:hand-dryer',     'en' => 'Hand dryers',    'fr' => 'Sèche-mains',        'ar' => 'مجفف يد'],
+            ['code' => 'wheelchair',   'icon' => 'mdi:wheelchair',     'en' => 'Wheelchair acc.', 'fr' => 'Accès PMR',          'ar' => 'ولوج للكراسي'],
+            ['code' => 'baby_change',  'icon' => 'mdi:baby-bottle',    'en' => 'Baby changing',  'fr' => 'Table à langer',     'ar' => 'تغيير الرضّع'],
+        ];
+
+        return $this->mapStaticRows($rows, $lang, $q);
+    }
+
+    protected function buildRules(?string $lang, string $q)
+    {
+        $rows = [
+            ['code' => 'no_smoking',         'icon' => 'mdi:smoke-off',     'en' => 'No smoking',           'fr' => 'Interdit de fumer',    'ar' => 'ممنوع التدخين'],
+            ['code' => 'for_customers_only', 'icon' => 'mdi:account-card',  'en' => 'Customers only',       'fr' => 'Clients uniquement',   'ar' => 'للزبائن فقط'],
+            ['code' => 'no_pets',            'icon' => 'mdi:dog-off',       'en' => 'No pets',              'fr' => 'Animaux interdits',    'ar' => 'ممنوع الحيوانات'],
+            ['code' => 'no_photos',          'icon' => 'mdi:camera-off',    'en' => 'No photography',       'fr' => 'Photos interdites',    'ar' => 'ممنوع التصوير'],
+        ];
+
+        return $this->mapStaticRows($rows, $lang, $q);
+    }
+
+    /* ------------------------------- Helpers ----------------------------- */
+
+    protected function mapStaticRows(array $rows, ?string $lang, string $q)
+    {
+        // Choose label column with fallbacks, then filter by q if provided
+        $rows = collect($rows)->map(function ($r) use ($lang) {
+            $label = $this->pickLabel($r, $lang);
+            return [
+                'code'  => $r['code'],
+                'icon'  => $r['icon'] ?? null,
+                'label' => $label,
+            ];
+        });
+
+        if ($q !== '') {
+            $qq = mb_strtolower($q);
+            $rows = $rows->filter(function ($r) use ($qq) {
+                return str_contains(mb_strtolower($r['code']), $qq)
+                    || str_contains(mb_strtolower($r['label']), $qq);
+            });
+        }
+
+        // Sort by label asc for deterministic order
+        return $rows->sortBy('label')->values()->all();
+    }
+
+    protected function pickLabel(array $row, ?string $lang): string
+    {
+        $order = $lang ? [$lang, 'fr', 'en', 'ar'] : ['fr', 'en', 'ar'];
+        foreach ($order as $l) {
+            if (!empty($row[$l])) return $row[$l];
+        }
+        return $row['code']; // last-resort fallback
+    }
+
+    /**
+     * SQL CASE/COALESCE expression to pick display label from multilingual columns.
+     * Priority: requested lang → fr → en → ar → code
+     */
+    protected function labelExpr(string $table, ?string $lang): string
+    {
+        $col = fn($c) => $table . '.' . $c;
+        $order = $lang ? [$lang, 'fr', 'en', 'ar'] : ['fr', 'en', 'ar'];
+        $parts = array_map(fn($l) => "NULLIF(" . $col($l) . ", '')", $order);
+        $coalesce = implode(', ', $parts);
+        return "COALESCE($coalesce, " . $col('code') . ")";
+    }
+}
