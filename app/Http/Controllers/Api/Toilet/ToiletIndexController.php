@@ -232,7 +232,7 @@ class ToiletIndexController extends Controller
         foreach ($rows as $t) {
             $item = ApiFormatter::toilet($t, [
                 // explicitly include what you care about; you can also pass 'all' => true
-                'include' => 'id,owner_id,toilet_category_id,name,description,phone_numbers,lat,lng,address_line,wilaya_id,place_hint,access_method,capacity,is_unisex,amenities,rules,is_free,price_cents,pricing_model,status,avg_rating,reviews_count,photos_count,created_at,updated_at,cover_photo,category,wilaya,owner,photos,open_hours,is_favorite',
+                'include' => 'id,owner_id,toilet_category_id,name,description,phone_numbers,lat,lng,address_line,wilaya_id,place_hint,access_method,capacity,is_unisex,amenities,amenities_meta,rules,rules_meta,is_free,price_cents,pricing_model,status,avg_rating,reviews_count,photos_count,created_at,updated_at,cover_photo,category,wilaya,owner,photos,open_hours,is_favorite',
             ]);
 
             // extras

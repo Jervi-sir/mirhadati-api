@@ -92,6 +92,15 @@ class ApiFormatter
 
         if ($want('amenities'))           $out['amenities']          = self::jsonToArray(self::getProp($t, 'amenities', null));
         if ($want('rules'))               $out['rules']              = self::jsonToArray(self::getProp($t, 'rules', null));
+        if ($want('amenities_meta')) {
+            $codes = $out['amenities'] ?? self::jsonToArray(self::getProp($t, 'amenities', null));
+            $out['amenities_meta'] = self::buildCodeMetaList($codes, self::getAmenities());
+        }
+
+        if ($want('rules_meta')) {
+            $codes = $out['rules'] ?? self::jsonToArray(self::getProp($t, 'rules', null));
+            $out['rules_meta'] = self::buildCodeMetaList($codes, self::getRules());
+        }
 
         if ($want('is_free'))             $out['is_free']            = self::toBool(self::getProp($t, 'is_free', true));
         if ($want('price_cents'))         $out['price_cents']        = self::hasProp($t, 'price_cents') ? self::toIntOrNull(self::getProp($t, 'price_cents')) : null;
@@ -169,7 +178,16 @@ class ApiFormatter
             $wil = null;
             if (self::isModel($t) && self::relLoaded($t, 'wilaya'))          $wil = $t->wilaya;
             elseif (self::hasProp($t, 'wilaya'))                             $wil = self::getProp($t, 'wilaya');
-            if ($wil) $out['wilaya'] = self::wilaya($wil);
+            if ($wil) {
+                $wil_obj = self::wilaya($wil);
+                $out['wilaya'] = $wil_obj;
+                $out['wilaya_text'] = [
+                    'code'  => $wil_obj['number'] . ' - ' . $wil_obj['code'],
+                    'en'    => $wil_obj['number'] . ' - ' . $wil_obj['en'],
+                    'fr'    => $wil_obj['number'] . ' - ' . $wil_obj['fr'],
+                    'ar'    => $wil_obj['number'] . ' - ' . $wil_obj['ar'],
+                ];
+            }
         }
 
         if ($want('owner')) {
@@ -492,4 +510,125 @@ class ApiFormatter
         $list = array_values(array_unique(array_filter($list)));
         return empty($list) ? null : $list; // empty => ALL
     }
+
+
+    /** ------------------------
+    * Taxnonomy Info
+    * ------------------------- */
+    public static function buildAccessMethods()
+    {
+        // Must match your toilets.access_method enum
+        return [
+            ['code' => 'public', 'icon' => 'door-open', 'en' => 'Public',           'fr' => 'Public',            'ar' => 'عمومي'],
+            ['code' => 'code',   'icon' => 'dialpad',     'en' => 'Door code',       'fr' => 'Code porte',        'ar' => 'رمز الباب'],
+            ['code' => 'staff',  'icon' => 'account',    'en' => 'Ask staff',       'fr' => 'Demander au staff', 'ar' => 'اسأل الموظفين'],
+            ['code' => 'key',    'icon' => 'key',        'en' => 'Key required',    'fr' => 'Clé requise',       'ar' => 'مفتاح مطلوب'],
+            ['code' => 'app',    'icon' => 'cellphone',  'en' => 'App controlled',  'fr' => 'Par application',   'ar' => 'عن طريق التطبيق'],
+        ];
+    }
+
+    public static function getAmenities()
+    {
+        // Stable codes; safe to add more later without breaking clients
+        return [
+            // --- Basics you already had ---
+            ['code' => 'paper',        'icon' => 'paper-roll',        'en' => 'Toilet paper',         'fr' => 'Papier toilette',             'ar' => 'ورق المرحاض'],
+            ['code' => 'soap',         'icon' => 'hand-wash',               'en' => 'Soap',                 'fr' => 'Savon',                       'ar' => 'صابون'],
+            ['code' => 'water',        'icon' => 'water',              'en' => 'Water',                'fr' => 'Eau',                         'ar' => 'ماء'],
+            // ['code' => 'bidet',        'icon' => 'bidet',              'en' => 'Bidet / Shattaf',      'fr' => 'Bidet / Douchette',           'ar' => 'شطّاف'],
+            ['code' => 'handwash',     'icon' => 'hand-water',         'en' => 'Hand wash',            'fr' => 'Lavage des mains',            'ar' => 'غسل اليدين'],
+            ['code' => 'dryers',       'icon' => 'hair-dryer',         'en' => 'Hair dryers',          'fr' => 'Sèche-cheveux',                 'ar' => 'مجفف شعر'],
+            ['code' => 'wheelchair',   'icon' => 'wheelchair',         'en' => 'Wheelchair access',    'fr' => 'Accès PMR',                   'ar' => 'ولوج للكراسي'],
+            ['code' => 'baby_change',  'icon' => 'baby-bottle',        'en' => 'Baby changing',        'fr' => 'Table à langer',              'ar' => 'تغيير الرضّع'],
+
+            // --- Frequently requested extras ---
+            ['code' => 'wifi',         'icon' => 'wifi',               'en' => 'Wi-Fi',                'fr' => 'Wi-Fi',                       'ar' => 'واي فاي'],
+            ['code' => 'outlets',      'icon' => 'power-socket',       'en' => 'Power outlets',        'fr' => 'Prises électriques',          'ar' => 'مقابس كهرباء'],
+            ['code' => 'mirror',       'icon' => 'mirror',             'en' => 'Mirror',               'fr' => 'Miroir',                      'ar' => 'مرآة'],
+            // ['code' => 'sanitary_bin', 'icon' => 'trash-can-outline',  'en' => 'Sanitary bin',         'fr' => 'Poubelle hygiénique',         'ar' => 'سلة نفايات صحية'],
+            // ['code' => 'paper_towels', 'icon' => 'paper-roll-outline', 'en' => 'Paper towels',         'fr' => 'Essuie-mains papier',         'ar' => 'مناديل ورقية'],
+            // ['code' => 'sanitizer',    'icon' => 'hand-wash',     'en' => 'Hand sanitizer',       'fr' => 'Gel hydroalcoolique',         'ar' => 'معقم يدين'],
+            // ['code' => 'air_freshener','icon' => 'spray',              'en' => 'Air freshener',        'fr' => 'Désodorisant',                'ar' => 'معطّر هواء'],
+            // ['code' => 'urinal',       'icon' => 'human-male',         'en' => 'Urinals',              'fr' => 'Urinoirs',                    'ar' => 'مَبُولَة'],
+            // ['code' => 'private_stalls','icon'=> 'door',               'en' => 'Private stalls',       'fr' => 'Cabines privées',             'ar' => 'حجرات خاصة'],
+            ['code' => 'western_wc',   'icon' => 'toilet',             'en' => 'Western toilet',       'fr' => 'WC à l’anglaise',             'ar' => 'مرحاض غربي (جلوس)'],
+            ['code' => 'squat_wc',     'icon' => 'toilet',             'en' => 'Squat toilet',         'fr' => 'WC à la turque',              'ar' => 'مرحاض عربي (قرفصة)'],
+            ['code' => 'gender_neutral','icon'=> 'human-male-female',  'en' => 'Gender-neutral',       'fr' => 'Non genré (mixte)',           'ar' => 'مراحيض للجميع'],
+            // ['code' => 'family_room',  'icon' => 'human-male-female-child','en'=>'Family room',       'fr' => 'Espace famille',              'ar' => 'غرفة عائلية'],
+            ['code' => 'shower',       'icon' => 'shower',             'en' => 'Shower',               'fr' => 'Douche',                      'ar' => 'دش'],
+            ['code' => 'hot_water',    'icon' => 'coolant-temperature','en' => 'Hot water',            'fr' => 'Eau chaude',                  'ar' => 'ماء ساخن'],
+            // ['code' => 'ac',           'icon' => 'air-conditioner',    'en' => 'Air conditioning',     'fr' => 'Climatisation',               'ar' => 'تكييف'],
+            // ['code' => 'heating',      'icon' => 'radiator',           'en' => 'Heating',              'fr' => 'Chauffage',                   'ar' => 'تدفئة'],
+            ['code' => 'braille',      'icon' => 'braille',            'en' => 'Braille signage',      'fr' => 'Signalétique braille',        'ar' => 'لافتات برايل'],
+            ['code' => 'wide_door',    'icon' => 'door-sliding',       'en' => 'Wide door',            'fr' => 'Porte large',                 'ar' => 'باب واسع'],
+            ['code' => 'grab_bars',    'icon' => 'hand-back-right',    'en' => 'Grab bars',            'fr' => 'Barres d’appui',              'ar' => 'مسكات دعم'],
+        ];
+    }
+
+    public static function getRules()
+    {
+        return [
+            // Existing
+            ['code' => 'no_smoking',         'icon' => 'smoke-off',        'en' => 'No smoking',              'fr' => 'Interdit de fumer',          'ar' => 'ممنوع التدخين'],
+            ['code' => 'for_customers_only', 'icon' => 'account-card',     'en' => 'Customers only',          'fr' => 'Clients uniquement',         'ar' => 'للزبائن فقط'],
+            ['code' => 'no_pets',            'icon' => 'dog-off',          'en' => 'No pets',                 'fr' => 'Animaux interdits',          'ar' => 'ممنوع الحيوانات'],
+            ['code' => 'no_photos',          'icon' => 'camera-off',       'en' => 'No photography',          'fr' => 'Photos interdites',          'ar' => 'ممنوع التصوير'],
+
+            // Useful additions
+            // ['code' => 'purchase_required',  'icon' => 'cash',             'en' => 'Purchase required',       'fr' => 'Achat requis',               'ar' => 'يجب شراء منتج'],
+            // ['code' => 'time_limited',       'icon' => 'timer-outline',    'en' => 'Time-limited use',        'fr' => 'Usage à durée limitée',      'ar' => 'استخدام بمدة محدودة'],
+            // ['code' => 'paid_entry',         'icon' => 'ticket-outline',   'en' => 'Paid entry',              'fr' => 'Accès payant',               'ar' => 'دخول مدفوع'],
+            ['code' => 'cctv',               'icon' => 'cctv',             'en' => 'CCTV in operation',       'fr' => 'Sous vidéosurveillance',     'ar' => 'مراقَب بالكاميرات'],
+            ['code' => 'no_vaping',          'icon' => 'smoking-off',      'en' => 'No vaping',               'fr' => 'Vapotage interdit',          'ar' => 'ممنوع السجائر الإلكترونية'],
+            // ['code' => 'no_loitering',       'icon' => 'account-off',      'en' => 'No loitering',            'fr' => 'Défense de traîner',         'ar' => 'ممنوع التسكع'],
+            ['code' => 'no_alcohol_drugs',   'icon' => 'glass-cocktail-off','en'=> 'No alcohol/drugs',        'fr' => 'Alcool/drogues interdits',   'ar' => 'ممنوع الكحول والمخدرات'],
+            ['code' => 'keep_clean',         'icon' => 'broom',            'en' => 'Keep it clean',           'fr' => 'Merci de laisser propre',    'ar' => 'يُرجى إبقاء المكان نظيفًا'],
+            ['code' => 'respect_queue',      'icon' => 'format-list-numbered','en'=>'Respect the queue',     'fr' => 'Respectez la file',          'ar' => 'احترام الطابور'],
+        ];
+    }
+
+    protected static function buildCodeMetaList(?array $codes, array $allRows): array
+    {
+        if (!$codes || !is_array($codes)) return [];
+
+        // Index canonical rows by code for O(1) lookups
+        $dict = [];
+        foreach ($allRows as $r) {
+            if (!isset($r['code'])) continue;
+            $dict[$r['code']] = $r;
+        }
+
+        $out = [];
+        foreach ($codes as $code) {
+            $row = $dict[$code] ?? null;
+
+            // If code not found in canonical list, still return a minimal entry
+            if (!$row) {
+                $out[] = [
+                    'code'  => (string)$code,
+                    'icon'  => null,
+                    'en'    => ucfirst(str_replace('_', ' ', (string)$code)),
+                    'fr'    => ucfirst(str_replace('_', ' ', (string)$code)),
+                    'ar'    => (string)$code, // or keep null if you prefer
+                    'label' => ucfirst(str_replace('_', ' ', (string)$code)),
+                ];
+                continue;
+            }
+
+            // Choose preferred label, fallback to EN
+            $label = $row['en'] ?? null;
+
+            $out[] = [
+                'code'  => $row['code'],
+                'icon'  => $row['icon'] ?? null,
+                'en'    => $row['en'] ?? null,
+                'fr'    => $row['fr'] ?? null,
+                'ar'    => $row['ar'] ?? null,
+                'label' => $label,
+            ];
+        }
+
+        return $out;
+    }
+
 }

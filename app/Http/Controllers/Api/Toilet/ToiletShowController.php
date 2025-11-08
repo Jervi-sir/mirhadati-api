@@ -44,8 +44,7 @@ class ToiletShowController extends Controller
 
         // Let formatter include the bundles we care about
         $payload = ApiFormatter::toilet($toilet, [
-            // you can switch to 'all' => true if you want literally everything
-            'include'   => ['id', 'category', 'wilaya', 'photos', 'open_hours', 'phone_numbers', 'is_favorite', 'lat', 'lng', 'is_free', 'price_cents', 'pricing_model', 'name', 'address_line', 'place_hint', 'access_method', 'reviews_count', 'photos_count', 'created_at', 'updated_at'],
+            'all' => true,
             'groups'    => ['meta'], // adds created_at, updated_at (already included, but kept for clarity)
             'drop_nulls' => true,
             'drop_empty_arrays' => true,

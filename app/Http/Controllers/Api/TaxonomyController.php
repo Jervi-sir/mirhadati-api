@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiFormatter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -52,7 +53,7 @@ class TaxonomyController extends Controller
             md5($lang . '|' . $q)
         );
 
-        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($type, $scope, $status, $withCounts, $lang, $q) {
+        $callback = function () use ($type, $scope, $status, $withCounts, $lang, $q) {
             if ($type === 'all') {
                 return response()->json([
                     'data' => [
@@ -74,7 +75,13 @@ class TaxonomyController extends Controller
             ];
 
             return response()->json(['data' => $map[$type]()]);
-        });
+        };
+
+        $shouldCache = false;
+        
+        return $shouldCache
+            ? Cache::remember($cacheKey, now()->addMinutes(10), $callback)
+            : $callback();
     }
 
     /* ----------------------------- DB-backed ----------------------------- */
@@ -150,43 +157,21 @@ class TaxonomyController extends Controller
     protected function buildAccessMethods(?string $lang, string $q)
     {
         // Must match your toilets.access_method enum
-        $rows = [
-            ['code' => 'public', 'icon' => 'mdi:door-open', 'en' => 'Public',           'fr' => 'Public',            'ar' => 'عمومي'],
-            ['code' => 'code',   'icon' => 'mdi:keypad',     'en' => 'Door code',       'fr' => 'Code porte',        'ar' => 'رمز الباب'],
-            ['code' => 'staff',  'icon' => 'mdi:account',    'en' => 'Ask staff',       'fr' => 'Demander au staff', 'ar' => 'اسأل الموظفين'],
-            ['code' => 'key',    'icon' => 'mdi:key',        'en' => 'Key required',    'fr' => 'Clé requise',       'ar' => 'مفتاح مطلوب'],
-            ['code' => 'app',    'icon' => 'mdi:cellphone',  'en' => 'App controlled',  'fr' => 'Par application',   'ar' => 'عن طريق التطبيق'],
-        ];
+        $rows = ApiFormatter::buildAccessMethods();
 
         return $this->mapStaticRows($rows, $lang, $q);
     }
 
     protected function buildAmenities(?string $lang, string $q)
     {
-        // Keep codes stable; you’re free to expand later
-        $rows = [
-            ['code' => 'paper',        'icon' => 'mdi:paper-roll',     'en' => 'Toilet paper',   'fr' => 'Papier toilette',    'ar' => 'ورق المرحاض'],
-            ['code' => 'soap',         'icon' => 'mdi:soap',           'en' => 'Soap',           'fr' => 'Savon',              'ar' => 'صابون'],
-            ['code' => 'water',        'icon' => 'mdi:water',          'en' => 'Water',          'fr' => 'Eau',                'ar' => 'ماء'],
-            ['code' => 'bidet',        'icon' => 'mdi:bidet',          'en' => 'Bidet / Shattaf', 'fr' => 'Bidet / Douchette',  'ar' => 'شطّاف'],
-            ['code' => 'handwash',     'icon' => 'mdi:hand-water',     'en' => 'Hand wash',      'fr' => 'Lavage des mains',   'ar' => 'غسل اليدين'],
-            ['code' => 'dryers',       'icon' => 'mdi:hand-dryer',     'en' => 'Hand dryers',    'fr' => 'Sèche-mains',        'ar' => 'مجفف يد'],
-            ['code' => 'wheelchair',   'icon' => 'mdi:wheelchair',     'en' => 'Wheelchair acc.', 'fr' => 'Accès PMR',          'ar' => 'ولوج للكراسي'],
-            ['code' => 'baby_change',  'icon' => 'mdi:baby-bottle',    'en' => 'Baby changing',  'fr' => 'Table à langer',     'ar' => 'تغيير الرضّع'],
-        ];
-
+        $rows = ApiFormatter::getAmenities();
         return $this->mapStaticRows($rows, $lang, $q);
     }
 
+
     protected function buildRules(?string $lang, string $q)
     {
-        $rows = [
-            ['code' => 'no_smoking',         'icon' => 'mdi:smoke-off',     'en' => 'No smoking',           'fr' => 'Interdit de fumer',    'ar' => 'ممنوع التدخين'],
-            ['code' => 'for_customers_only', 'icon' => 'mdi:account-card',  'en' => 'Customers only',       'fr' => 'Clients uniquement',   'ar' => 'للزبائن فقط'],
-            ['code' => 'no_pets',            'icon' => 'mdi:dog-off',       'en' => 'No pets',              'fr' => 'Animaux interdits',    'ar' => 'ممنوع الحيوانات'],
-            ['code' => 'no_photos',          'icon' => 'mdi:camera-off',    'en' => 'No photography',       'fr' => 'Photos interdites',    'ar' => 'ممنوع التصوير'],
-        ];
-
+        $rows = ApiFormatter::getRules();
         return $this->mapStaticRows($rows, $lang, $q);
     }
 

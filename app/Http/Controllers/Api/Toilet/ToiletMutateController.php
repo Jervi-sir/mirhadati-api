@@ -44,7 +44,7 @@ class ToiletMutateController extends Controller
                 'is_free'            => $data['is_free'],
                 'price_cents'        => $data['price_cents'] ?? null,
                 'pricing_model'      => $data['pricing_model'] ?? null,
-                'status'             => $data['status'] ?? 'pending',
+                'status'             => 'active', // $data['status'] ?? 'pending',
             ]);
 
             if (!empty($data['photos'])) {

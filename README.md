@@ -11,40 +11,12 @@ server {
     listen 80;
     server_name mirhadati.octaprize.com;
 
-        # Block common WordPress attack paths
-    location ~* ^/(wp-admin|wp-login.php|wp-content|wp-includes|wp-json|wp-cron.php|wp-config.php|cgi-bin|xmrlpc.php) {
-        return 403;
-    }
+    # 🔓 allow larger requests (pick a size you’re comfy with)
+    client_max_body_size 25M;
+    client_body_buffer_size 256k;
+    client_body_timeout 300s;
 
-    # Allow Let's Encrypt SSL renewals but block other access
-    location ^~ /.well-known/acme-challenge/ {
-        allow all;
-    }
-    location ~* ^/.well-known/ {
-        return 403;
-    }
-
-    # Block direct access to PHP files except index.php
-    location ~* \.php$ {
-        if ($uri !~ "^/index.php$") {
-            return 403;
-        }
-    }
-
-    # Block empty User-Agent requests (common bot behavior)
-    if ($http_user_agent = "") {
-        return 403;
-    }
-
-    # Block bad bots (list can be expanded)
-    if ($http_user_agent ~* (crawler|scrapy|spider|nmap|java|masscan|curl|wget|hydra|nikto|flood|sqlmap|acunetix|wpscan|wordpress|wordpressscan) ) {
-        return 403;
-    }
-
-    # Block common attack patterns
-    location ~* ^/(admin|adminer|phpmyadmin|config.php|setup.php|shell.php) {
-        return 403;
-    }
+    # ... your existing blocks ...
 
     location / {
         proxy_pass http://localhost:6959;
@@ -52,13 +24,26 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
+        # 🧠 streaming uploads to upstream (don’t buffer at Nginx)
+        proxy_request_buffering off;
+
+        # (optional) if buffering is on, don’t spill to temp files
+        proxy_max_temp_file_size 0;
+
+        # timeouts for slow mobile networks
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+
         proxy_buffer_size 128k;
         proxy_buffers 4 256k;
         proxy_busy_buffers_size 256k;
 
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
     }
 }
+
 ```
 - sudo ln -s /etc/nginx/sites-available/mirhadati.octaprize.com /etc/nginx/sites-enabled/
 - sudo nginx -t
